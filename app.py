@@ -7,10 +7,13 @@ from collections import Counter
 
 # --- Page Setup ---
 st.set_page_config(page_title="Resume vs Reality", layout="wide")
+
+# --- Header with taglines ---
 st.markdown("""
-    <h1 style='text-align: center; color: #003262;'>📌 Resume vs Reality</h1>
-    <h4 style='text-align: center; color: grey;'>Which Skills Actually Help You Get Hired?</h4>
-    <hr style='border: 1px solid #ccc;'>
+    <h1 style='text-align: center; color: #002B5B;'>🚀 Resume vs Reality</h1>
+    <h3 style='text-align: center; color: #444;'>See Through the Hiring Fog ✨</h3>
+    <p style='text-align: center; font-size: 16px;'>Discover which skills actually get you hired – no fluff, just data.</p>
+    <hr style='border: 1px solid #ddd;'>
 """, unsafe_allow_html=True)
 
 # --- Load Model and Encoder ---
@@ -22,9 +25,8 @@ def load_model():
 
 model, mlb = load_model()
 
-# --- Sidebar Navigation ---
-st.sidebar.title("🔍 Explore")
-section = st.sidebar.radio("Jump to", [
+# --- Section Navigation Buttons ---
+section = st.selectbox("📍 Choose Section", [
     "🔮 Hiring Prediction",
     "📊 Skill Insights Dashboard",
     "📎 Resume vs Job Match"
@@ -32,12 +34,12 @@ section = st.sidebar.radio("Jump to", [
 
 # ----------------- SECTION 1: Hiring Prediction -----------------
 if section == "🔮 Hiring Prediction":
-    st.subheader("🔮 Predict Your Hiring Potential")
-    st.markdown("Enter your **skills**, and we'll tell you how likely you are to be hired based on real-world data!")
+    st.header("🔮 Predict Your Hiring Potential")
+    st.markdown("_Wondering if your skills are in demand? Enter them below and let the data speak._")
 
     user_input = st.text_area("🧠 Your Skills (comma-separated)", placeholder="e.g., Python, Excel, Communication", height=120)
 
-    if st.button("🔍 Predict Hiring Likelihood"):
+    if st.button("🎯 Check Hiring Likelihood"):
         if not user_input.strip():
             st.warning("⚠️ Please enter at least one skill.")
         else:
@@ -62,10 +64,9 @@ if section == "🔮 Hiring Prediction":
 
 # ----------------- SECTION 2: Skill Insights Dashboard -----------------
 elif section == "📊 Skill Insights Dashboard":
-    st.subheader("📊 Skills in Resumes vs Reality")
-    st.info("This dashboard compares skill frequency across resumes, hired candidates, and job listings.")
+    st.header("📊 Skills in Resumes vs Reality")
+    st.markdown("_Explore which skills dominate resumes, job descriptions, and real hires. Bust the resume myths!_")
 
-    # Load Data
     resumes = pd.read_csv("resumes.csv")
     hired = pd.read_csv("hired_profiles.csv")
     jobs = pd.read_csv("job_enriched.csv")
@@ -73,8 +74,6 @@ elif section == "📊 Skill Insights Dashboard":
     resumes['skills'] = resumes['skills_listed'].fillna('').apply(lambda x: [i.strip().lower() for i in str(x).split(',')])
     hired['skills'] = hired['skills_endorsed'].fillna('').apply(lambda x: [i.strip().lower() for i in str(x).split(',')])
 
-    # ✅ Safe skill column detection for job data
-    st.write("📄 Columns in job_enriched.csv:", jobs.columns.tolist())
     try:
         skill_col = next(col for col in jobs.columns if 'skill' in col.lower())
         jobs['skills'] = jobs[skill_col].fillna('').apply(lambda x: [i.strip().lower() for i in str(x).split(',')])
@@ -95,7 +94,7 @@ elif section == "📊 Skill Insights Dashboard":
     df_all['Resume Inflation Index'] = (df_all['count_resumes'] + 1) / (df_all['count_jobs'] + 1)
     df_all['Hiring Edge'] = (df_all['count_hired'] + 1) / (df_all['count_resumes'] + 1)
 
-    st.markdown("### 🔝 Top 25 Skills Across All Sources")
+    st.subheader("🔝 Top 25 Skills Across All Sources")
     top_skills = df_all.sort_values('count_resumes', ascending=False).head(25)
     st.plotly_chart(px.bar(
         top_skills.melt(id_vars='skill', value_vars=['count_resumes', 'count_hired', 'count_jobs']),
@@ -103,7 +102,8 @@ elif section == "📊 Skill Insights Dashboard":
         title="Top 25 Skills: Resumes vs Hired vs Job Listings"
     ), use_container_width=True)
 
-    st.markdown("### ⚖️ Resume Inflation vs Hiring Edge")
+    st.subheader("⚖️ Resume Inflation vs Hiring Edge")
+    st.markdown("_Where do your skills lie? This chart shows what's underrated, overrated, and just right._")
     st.plotly_chart(px.scatter(
         df_all, x='Resume Inflation Index', y='Hiring Edge', text='skill',
         title="Skill Positioning Matrix",
@@ -112,13 +112,13 @@ elif section == "📊 Skill Insights Dashboard":
 
 # ----------------- SECTION 3: Resume vs Job Match -----------------
 elif section == "📎 Resume vs Job Match":
-    st.subheader("📎 Skill Alignment Checker")
-    st.markdown("Compare your resume skills with a job description to check alignment and missing areas.")
+    st.header("📎 Skill Alignment Checker")
+    st.markdown("_Compare your resume to the job description and uncover missing or extra skills._")
 
     resume_input = st.text_area("🧾 Resume Skills (comma-separated)", height=120)
-    job_input = st.text_area("🧾 Job Description Skills (comma-separated)", height=120)
+    job_input = st.text_area("📄 Job Description Skills (comma-separated)", height=120)
 
-    if st.button("🔍 Compare and Score"):
+    if st.button("📊 Compare and Score"):
         if not resume_input.strip() or not job_input.strip():
             st.warning("⚠️ Please fill both fields.")
         else:
