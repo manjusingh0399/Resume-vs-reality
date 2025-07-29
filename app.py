@@ -1,133 +1,145 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.express as px
 
-# Streamlit page setup
-st.set_page_config(page_title="Resume vs Reality", layout="wide")
+# ---- THEME COLORS ----
+BLACK = "#131313"
+PINK = "#ff4da6"
+WHITE = "#f3f3fa"
+TEAL = "#65fcda"
+GRAY = "#22272B"
 
-# ---------- CUSTOM CSS ----------
-st.markdown("""
+st.set_page_config(
+    page_title="Resume vs Reality",
+    page_icon=":sparkles:",
+    layout="wide"
+)
+
+st.markdown(f"""
     <style>
-    body {
-        background-color: black;
-        color: white;
-    }
-    .main {
-        background-color: black;
-        color: white;
-    }
-    h1, h2, h3, h4, h5, h6 {
-        color: #ff69b4;
-    }
-    .stButton>button {
-        background-color: #ff69b4;
-        color: white;
-        font-weight: bold;
-        border-radius: 10px;
-    }
-    .stButton>button:hover {
-        background-color: #ffa07a;
-        color: black;
-    }
-    .stTextInput>div>div>input {
-        background-color: #333;
-        color: white;
-    }
-    .insight {
-        border-radius: 10px;
-        padding: 10px;
-        margin-top: 10px;
-        font-size: 16px;
-        color: white;
-    }
-    .positive { background-color: #006400; }
-    .warning { background-color: #8b0000; }
-    .neutral { background-color: #483d8b; }
+    .reportview-container {{
+        background: {BLACK};
+        color: {WHITE};
+    }}
+    .sidebar .sidebar-content {{
+        background: {BLACK}; color: {WHITE};
+    }}
+    .stButton>button {{
+        border-radius:12px; background:{PINK}; color:{WHITE};
+        font-weight:bold; border:none; font-size:18px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.18);
+    }}
+    .stRadio>div>label {{
+        background:{GRAY};
+        color:{WHITE};
+        border-radius:9px; padding:8px 14px;
+        margin-right:8px;
+    }}
+    .css-17eq0hr {{
+        color: {PINK} !important;
+    }}
+    .big-font {{
+        font-size:36px !important;
+        font-weight:700; color:{PINK};
+        margin-bottom:12px;
+    }}
+    .insight-card {{
+        border-radius:12px; background:{WHITE}; color:{BLACK};
+        padding:18px 20px; margin:12px 0; font-size:18px;
+        box-shadow:0 1px 6px #2222;
+        border-left:6px solid {PINK};
+    }}
+    .score-bar-container {{
+        background:{WHITE}; color:{BLACK};
+        border-radius:10px; height:26px; margin: 12px 0; width: 100%;
+        border:1.5px solid {PINK}; box-shadow:0 1px 6px #0001;
+        display:flex; align-items:center; overflow:hidden;
+    }}
+    .score-bar-fill {{
+        height:26px; background:{PINK}; color:{BLACK};
+        font-weight:bold; text-align:center; 
+        padding-left:12px; display:flex; align-items:center;
+        font-size:18px;
+        transition:width 0.9s;
+    }}
     </style>
 """, unsafe_allow_html=True)
 
-# ---------- LOAD DATA ----------
-resumes = pd.read_csv("resumes.csv")
-hired = pd.read_csv("hired_profiles.csv")
-jobs = pd.read_csv("job_enriched.csv")
+# ---- SIDEBAR NAVIGATION ----
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("", ["Overview", "Key Insights", "Role Explorer", "My Resume vs Reality", "About"])
 
-resumes["skills"] = resumes["skills_listed"]
-hired["skills"] = hired["skills_endorsed"]
-jobs["skills"] = jobs["skills_required"]
-
-# ---------- TITLE ----------
-st.title("✨ Resume vs Reality ✨")
-st.markdown("You + Data = Dream Job 🪄 Let's uncover what *really* gets you hired. 🎯", unsafe_allow_html=True)
-
-# ---------- TABS ----------
-tab1, tab2 = st.tabs(["🔥 In-Demand Skills", "🧠 Reality Check"])
-
-# ---------- HELPERS ----------
 @st.cache_data
-def get_top_skills(df, column):
-    all_skills = df[column].dropna().str.lower().str.split(",|;|\\|")
-    flat_skills = [s.strip().strip("[]()\"' ") for sublist in all_skills for s in sublist if s.strip()]
-    return pd.Series(flat_skills).value_counts()
+def load_data():
+    job_df = pd.read_csv("job_enriched.csv")
+    resume_df = pd.read_csv("synthetic_resumes.csv")
+    hired_df = pd.read_csv("synthetic_hired_profiles.csv")
+    return job_df, resume_df, hired_df
 
-# ---------- TAB 1: In-Demand Skills ----------
-with tab1:
-    st.header("📊 What's Hot in the Market?")
-    st.markdown("Here's what employers want vs what actually gets people hired:")
+job_df, resume_df, hired_df = load_data()
 
-    col1, col2 = st.columns(2)
+# ------- SCORE & FEEDBACK UTILITIES -------
+def get_hired_skills_by_role(role):
+    # Placeholder: Adjust with your real role-to-skill mapping logic
+    skill_dict = {
+        "Analyst": {"Python", "SQL", "Excel", "Data Visualization"},
+        "Marketing": {"Canva", "Market Research", "SEO", "Content Creation"},
+        "HR": {"Communication", "Recruitment", "Excel", "Teamwork"},
+        "Sales": {"Communication", "Negotiation", "CRM", "Excel"}
+    }
+    return skill_dict.get(role, {"Excel", "Communication"})
 
-    with col1:
-        top_job_skills = get_top_skills(jobs, "skills").head(10)
-        fig, ax = plt.subplots()
-        sns.barplot(x=top_job_skills.values, y=top_job_skills.index, ax=ax, palette="rocket")
-        ax.set_title("Top Skills in Job Descriptions", color="white")
-        ax.tick_params(colors="white")
-        fig.patch.set_facecolor("black")
-        ax.set_facecolor("black")
-        st.pyplot(fig)
-        st.markdown("<div class='insight neutral'>📌 These are the skills *most asked for* by recruiters.</div>", unsafe_allow_html=True)
+def get_feedback(user_skills, target_skills):
+    missing = target_skills - user_skills
+    feedback = []
+    for skill in missing:
+        # Customize feedback as you want
+        advice = {
+            "Python": "Learning Python will make you stand out for analyst/data roles.",
+            "SQL": "SQL is highly valued by employers in data-driven jobs.",
+            "Excel": "Even basic Excel mastery is foundational for most office jobs.",
+            "Data Visualization": "Try learning Tableau or Power BI to visualize data better.",
+            "Canva": "Design skills like Canva boost your appeal in marketing roles.",
+            "Market Research": "Strengthen your market research expertise for marketing opportunities.",
+            "SEO": "Understanding SEO is critical for digital marketing roles.",
+            "Content Creation": "Try building a content portfolio—great for creative/marketing paths.",
+            "Recruitment": "Recruitment know-how is essential for HR advancement.",
+            "Teamwork": "Showcasing team projects gives you an edge for HR jobs.",
+            "Negotiation": "Negotiation skills can be your differentiator in sales.",
+            "CRM": "Learn Salesforce or HubSpot for a leg up in Sales or Customer Success."
+        }
+        feedback.append(advice.get(skill, f"Consider developing your {skill} skill!"))
+    return feedback
 
-    with col2:
-        top_hired_skills = get_top_skills(hired, "skills").head(10)
-        fig2, ax2 = plt.subplots()
-        sns.barplot(x=top_hired_skills.values, y=top_hired_skills.index, ax=ax2, palette="flare")
-        ax2.set_title("Top Skills in Hired Profiles", color="white")
-        ax2.tick_params(colors="white")
-        fig2.patch.set_facecolor("black")
-        ax2.set_facecolor("black")
-        st.pyplot(fig2)
-        st.markdown("<div class='insight positive'>🌟 These are the skills that actually *got people hired*. Major green flags!</div>", unsafe_allow_html=True)
+# ------- PAGE LOGIC -------
+if page == "My Resume vs Reality":
+    st.header("Your Skills: How Do You Match The Market?")
+    st.write("Enter your skills (comma-separated), choose your target role, and see your fit score—plus personalized feedback!")
+    user_input = st.text_input("List your skills", "Excel, Communication, Python")
+    role = st.selectbox("Target Role", ["Analyst", "Marketing", "HR", "Sales"])
+    user_skills = set([s.strip().capitalize() for s in user_input.split(",") if s.strip()])
+    target_skills = get_hired_skills_by_role(role)
 
-    # 🔁 Overlap and Insight
-    common_skills = set(top_job_skills.index) & set(top_hired_skills.index)
-    only_in_resumes = set(top_job_skills.index) - common_skills
+    # --- Calculate Fit Score ---
+    matched = user_skills & target_skills
+    missing = target_skills - user_skills
+    score = int(100 * len(matched) / len(target_skills)) if target_skills else 0
 
-    st.subheader("🎯 Skill Gap Analysis")
-    st.markdown(f"<div class='insight positive'>✅ Common Winning Skills: {', '.join(common_skills)}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='insight warning'>❗ Resume Buzzwords That Might Be Overrated: {', '.join(only_in_resumes)}</div>", unsafe_allow_html=True)
-
-# ---------- TAB 2: Reality Check ----------
-with tab2:
-    st.header("🧠 Reality Check: How Do You Compare?")
-    st.markdown("Enter your current skills below and we'll compare them to what's hot 🔥")
-
-    user_input = st.text_input("💌 Type your skills (comma-separated)", placeholder="e.g. Excel, Python, Communication")
-
-    if user_input:
-        user_skills = set([s.strip().lower() for s in user_input.split(",") if s.strip()])
-
-        top_job = set(get_top_skills(jobs, "skills").head(15).index)
-        top_hired = set(get_top_skills(hired, "skills").head(15).index)
-
-        match_job = user_skills & top_job
-        match_hired = user_skills & top_hired
-        missing = (top_job | top_hired) - user_skills
-
-        st.markdown(f"<div class='insight positive'>✨ You're aligned with job listings on: {', '.join(match_job) if match_job else 'None 😬'}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='insight neutral'>🧠 Matched with hired profiles: {', '.join(match_hired) if match_hired else 'None'}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='insight warning'>📚 Consider learning: {', '.join(missing) if missing else 'You’re slaying it! 🔥'}</div>", unsafe_allow_html=True)
-
-# ---------- FOOTER ----------
-st.markdown("<hr style='border-top: 1px solid pink;'>", unsafe_allow_html=True)
-st.markdown("<center style='color: white;'>🧁 Built with sass, stats, and sisterly advice. Keep learning. Keep slaying. 💻✨</center>", unsafe_allow_html=True)
+    # --- Animated Progress Bar ---
+    st.markdown(f"""
+        <div class="score-bar-container">
+            <div class="score-bar-fill" style="width: {score}%;">Resume Fit Score: {score}/100</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if score == 100:
+        st.markdown(
+            '<div class="insight-card" style="border-left:6px solid #65fc65;">🎉 Outstanding!<br>You have all the key skills for this role. Go crush those interviews!</div>',
+            unsafe_allow_html=True)
+    elif score >= 60:
+        st.markdown(
+            f'<div class="insight-card">Great! You match {len(matched)} out of {len(target_skills)} essential {role} skills: <b>{", ".join(matched) if matched else "None yet"}</b>.</div>',
+            unsafe_allow_html=True)
+    else:
+        st.markdown(
+            f'<div class
