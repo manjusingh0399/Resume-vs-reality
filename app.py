@@ -34,7 +34,7 @@ st.markdown("""
 # Load data
 resumes = pd.read_csv("resumes.csv")
 hired = pd.read_csv("hired_profiles.csv")
-jobs = pd.read_csv("job.csv")
+jobs = pd.read_csv("job_enriches.csv")
 
 # Title and Introduction
 st.title("✨ Resume vs Reality ✨")
@@ -71,6 +71,7 @@ if section == "Top 10 In-Demand Skills":
         ax.yaxis.label.set_color('white')
         ax.title.set_color('white')
         st.pyplot(fig)
+        st.markdown("🔍 **Insight:** These are the skills most often requested by employers in job posts.")
 
     with col2:
         st.subheader("Hired Profiles")
@@ -87,6 +88,7 @@ if section == "Top 10 In-Demand Skills":
         ax2.yaxis.label.set_color('white')
         ax2.title.set_color('white')
         st.pyplot(fig2)
+        st.markdown("🎯 **Insight:** These are the skills that actually landed candidates their jobs.")
 
 # Section: Reality Check
 elif section == "Reality Check: Where Do You Stand?":
