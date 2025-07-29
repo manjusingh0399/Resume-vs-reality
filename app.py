@@ -6,7 +6,7 @@ import seaborn as sns
 # Set Streamlit page config
 st.set_page_config(page_title="Resume vs Reality", layout="wide")
 
-# Custom CSS for dark theme with white text and pink highlights
+# Custom CSS for black, pink, and orange theme
 st.markdown("""
     <style>
     body {
@@ -23,9 +23,15 @@ st.markdown("""
     .stButton>button {
         background-color: #ff69b4;
         color: white;
+        border-radius: 10px;
+        font-weight: bold;
+    }
+    .stButton>button:hover {
+        background-color: #ff7f50; /* orange */
+        color: black;
     }
     .stTextInput>div>div>input {
-        background-color: #333;
+        background-color: #222;
         color: white;
     }
     </style>
@@ -34,24 +40,32 @@ st.markdown("""
 # Load data
 resumes = pd.read_csv("resumes.csv")
 hired = pd.read_csv("hired_profiles.csv")
-jobs = pd.read_csv("job_enriches.csv")
+jobs = pd.read_csv("job_enriched.csv")
+
+# Fix column names
+resumes["skills"] = resumes["skills_listed"]
+hired["skills"] = hired["skills_endorsed"]
 
 # Title and Introduction
 st.title("✨ Resume vs Reality ✨")
 st.markdown("Because what you *say* you know and what actually gets you hired... are two different stories 💅")
 
-# Sidebar Navigation
-section = st.sidebar.radio("Jump to Section", ["Top 10 In-Demand Skills", "Reality Check: Where Do You Stand?", "Raw Data"])
+# Section Navigation
+section = st.radio("Choose a section to explore 👇", [
+    "🔥 Top 10 In-Demand Skills", 
+    "🧠 Reality Check: Where Do You Stand?", 
+    "📂 Raw Data Preview"
+])
 
-# Helper function: Top 10 skills
+# Helper function
 @st.cache_data
 def get_top_skills(df, column):
-    all_skills = df[column].dropna().str.lower().str.split(", |,|")
-    skills_series = pd.Series([skill.strip() for sublist in all_skills for skill in sublist])
-    return skills_series.value_counts().head(10)
+    all_skills = df[column].dropna().str.lower().str.split(",|;|\\|")
+    flat_skills = [skill.strip().strip("[]()\"'") for sublist in all_skills for skill in sublist if skill.strip()]
+    return pd.Series(flat_skills).value_counts().head(10)
 
-# Section: Top 10 In-Demand Skills
-if section == "Top 10 In-Demand Skills":
+# Section 1: Top 10 Skills
+if section == "🔥 Top 10 In-Demand Skills":
     st.header("🔥 Top 10 In-Demand Skills")
     st.markdown("From job descriptions and hired profiles ✨")
 
@@ -60,61 +74,54 @@ if section == "Top 10 In-Demand Skills":
         st.subheader("Job Descriptions")
         top_job_skills = get_top_skills(jobs, "skills")
         fig, ax = plt.subplots()
-        sns.barplot(x=top_job_skills.values, y=top_job_skills.index, ax=ax, palette="pink")
-        ax.set_xlabel("Frequency")
-        ax.set_ylabel("Skill")
+        sns.barplot(x=top_job_skills.values, y=top_job_skills.index, ax=ax, palette="rocket")
         ax.set_title("Top 10 Skills in Job Descriptions", color="white")
-        fig.patch.set_facecolor('black')
-        ax.set_facecolor('black')
+        ax.set_xlabel("Frequency", color="white")
+        ax.set_ylabel("Skill", color="white")
+        ax.set_facecolor("black")
+        fig.patch.set_facecolor("black")
         ax.tick_params(colors='white')
-        ax.xaxis.label.set_color('white')
-        ax.yaxis.label.set_color('white')
-        ax.title.set_color('white')
         st.pyplot(fig)
-        st.markdown("🔍 **Insight:** These are the skills most often requested by employers in job posts.")
+        st.markdown("🔍 **Insight:** These are the most requested skills in job ads.")
 
     with col2:
         st.subheader("Hired Profiles")
         top_hired_skills = get_top_skills(hired, "skills")
         fig2, ax2 = plt.subplots()
-        sns.barplot(x=top_hired_skills.values, y=top_hired_skills.index, ax=ax2, palette="pink")
-        ax2.set_xlabel("Frequency")
-        ax2.set_ylabel("Skill")
+        sns.barplot(x=top_hired_skills.values, y=top_hired_skills.index, ax=ax2, palette="flare")
         ax2.set_title("Top 10 Skills in Hired Profiles", color="white")
-        fig2.patch.set_facecolor('black')
-        ax2.set_facecolor('black')
+        ax2.set_xlabel("Frequency", color="white")
+        ax2.set_ylabel("Skill", color="white")
+        ax2.set_facecolor("black")
+        fig2.patch.set_facecolor("black")
         ax2.tick_params(colors='white')
-        ax2.xaxis.label.set_color('white')
-        ax2.yaxis.label.set_color('white')
-        ax2.title.set_color('white')
         st.pyplot(fig2)
-        st.markdown("🎯 **Insight:** These are the skills that actually landed candidates their jobs.")
+        st.markdown("🎯 **Insight:** These are the skills that actually helped people get hired.")
 
-# Section: Reality Check
-elif section == "Reality Check: Where Do You Stand?":
+# Section 2: Reality Check
+elif section == "🧠 Reality Check: Where Do You Stand?":
     st.header("🧠 Reality Check: Where Do You Stand?")
-    st.markdown("Let's compare your skillset to what’s trending. Enter your skills below 👇")
+    st.markdown("Let’s compare your skills to what’s *actually* hot in the market 🔥")
 
-    user_input = st.text_input("Enter your skills (comma-separated, e.g., Python, Excel, SQL)", "")
+    user_input = st.text_input("Enter your skills (comma-separated)", placeholder="e.g., Python, Canva, Teamwork")
     if user_input:
-        user_skills = set([skill.strip().lower() for skill in user_input.split(',')])
+        user_skills = set([s.strip().lower() for s in user_input.split(',') if s.strip()])
+        job_top = set(get_top_skills(jobs, "skills").index)
+        hired_top = set(get_top_skills(hired, "skills").index)
 
-        job_top_skills = set(get_top_skills(jobs, "skills").index)
-        hired_top_skills = set(get_top_skills(hired, "skills").index)
+        matched_job = user_skills & job_top
+        matched_hired = user_skills & hired_top
+        missing_skills = (job_top | hired_top) - user_skills
 
-        job_match = user_skills & job_top_skills
-        hired_match = user_skills & hired_top_skills
-        missing_skills = (job_top_skills | hired_top_skills) - user_skills
+        st.subheader("💅 Here's your personal scoop:")
+        st.markdown(f"**✔️ Matching Job Description Skills:** {', '.join(matched_job) if matched_job else 'None'}")
+        st.markdown(f"**🎯 Matching Hired Profile Skills:** {', '.join(matched_hired) if matched_hired else 'None'}")
+        st.markdown(f"**📚 Skills to Learn:** {', '.join(missing_skills) if missing_skills else 'You’re killing it! 💖'}")
 
-        st.subheader("✨ Here's how you stack up:")
-        st.markdown(f"**Skills Matching Job Descriptions:** {', '.join(job_match) if job_match else 'None'}")
-        st.markdown(f"**Skills Matching Hired Profiles:** {', '.join(hired_match) if hired_match else 'None'}")
-        st.markdown(f"**You Might Want to Learn:** {', '.join(missing_skills) if missing_skills else 'You’ve nailed it! 🎯'}")
-
-# Section: Raw Data
-elif section == "Raw Data":
+# Section 3: Raw Data
+elif section == "📂 Raw Data Preview":
     st.header("📂 Raw Data Preview")
-    st.markdown("Because you're data-curious ✨")
+    st.markdown("Because we like to peek under the hood ✨")
 
     st.subheader("Resumes")
     st.dataframe(resumes.head())
@@ -124,3 +131,7 @@ elif section == "Raw Data":
 
     st.subheader("Jobs")
     st.dataframe(jobs.head())
+
+# Footer
+st.markdown("<hr style='border-top: 1px solid pink;'>", unsafe_allow_html=True)
+st.markdown("<center style='color: white;'>💁‍♀️ Powered by data, glam, and honesty. Your career glow-up starts here.</center>", unsafe_allow_html=True)
