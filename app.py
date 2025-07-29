@@ -34,11 +34,8 @@ st.markdown(f"""
         background-color: {ORANGE};
         color: black;
     }}
-    h1, h2, h3, h4, h5, h6 {{
-        color: {PINK};
-    }}
-    .metric-label, .metric-value {{
-        font-weight: bold;
+    h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, .stTextInput, .stTextArea, .stMetric {{
+        color: {TEXT} !important;
     }}
     </style>
 """, unsafe_allow_html=True)
@@ -100,7 +97,7 @@ if section == "🔮 Hiring Prediction":
 # ----------------- SECTION 2: Skill Insights Dashboard -----------------
 elif section == "📊 Skill Insights Dashboard":
     st.header("📊 Skills Dashboard: Resume vs Reality")
-    st.markdown("_Let’s see who’s flexing too hard on their resume (or not enough).\_")
+    st.markdown("_Let’s see who’s flexing too hard on their resume (or not enough)._")
 
     resumes = pd.read_csv("resumes.csv")
     hired = pd.read_csv("hired_profiles.csv")
@@ -129,13 +126,13 @@ elif section == "📊 Skill Insights Dashboard":
     df_all['Resume Inflation Index'] = (df_all['count_resumes'] + 1) / (df_all['count_jobs'] + 1)
     df_all['Hiring Edge'] = (df_all['count_hired'] + 1) / (df_all['count_resumes'] + 1)
 
-    top_skills = df_all.sort_values('count_resumes', ascending=False).head(25)
-    st.subheader("🎓 Top 25 Skills Across All Sources")
+    top10_all = df_all.sort_values('count_resumes', ascending=False).head(10)
+    st.subheader("🎓 Top 10 Most Listed Skills")
     st.plotly_chart(px.bar(
-        top_skills.melt(id_vars='skill', value_vars=['count_resumes', 'count_hired', 'count_jobs']),
+        top10_all.melt(id_vars='skill', value_vars=['count_resumes', 'count_hired', 'count_jobs']),
         x='skill', y='value', color='variable', barmode='group',
         color_discrete_sequence=[PINK, ORANGE, '#ffcccb'],
-        title="Top 25: Resume vs Hired vs Jobs"
+        title="Top 10: Resume vs Hired vs Jobs"
     ), use_container_width=True)
 
     st.subheader("📉 Resume Inflation vs Hiring Edge")
@@ -145,7 +142,7 @@ elif section == "📊 Skill Insights Dashboard":
         labels={"Resume Inflation Index": "Oversold on Resumes", "Hiring Edge": "Actually Gets You Hired"}
     )
     fig.update_traces(textposition='top center')
-    fig.update_layout(height=600)
+    fig.update_layout(height=600, plot_bgcolor=BG, paper_bgcolor=BG, font=dict(color=TEXT))
     st.plotly_chart(fig, use_container_width=True)
 
     # Bonus: Top Hiring Skills Pie & Bar
