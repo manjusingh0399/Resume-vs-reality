@@ -132,3 +132,4 @@ elif section == "📎 Resume vs Job Match":
                 st.warning("⚠️ Partial match. Consider learning the missing skills.")
             else:
                 st.error("❌ Low match. You may not be a strong fit without upskilling.")
+
