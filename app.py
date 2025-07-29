@@ -8,11 +8,36 @@ from collections import Counter
 # --- Page Setup ---
 st.set_page_config(page_title="Resume vs Reality", layout="wide")
 
+# --- Custom Theme ---
+PINK = "#ff6f91"
+ORANGE = "#ff9671"
+BG = "#fff0f5"
+TEXT = "#333333"
+
+st.markdown(f"""
+    <style>
+    .stApp {{
+        background-color: {BG};
+        color: {TEXT};
+    }}
+    .stButton>button {{
+        background-color: {PINK};
+        color: white;
+        border-radius: 10px;
+        font-weight: bold;
+    }}
+    .stButton>button:hover {{
+        background-color: {ORANGE};
+        color: black;
+    }}
+    </style>
+""", unsafe_allow_html=True)
+
 # --- Header with taglines ---
-st.markdown("""
-    <h1 style='text-align: center; color: #002B5B;'>🚀 Resume vs Reality</h1>
-    <h3 style='text-align: center; color: #444;'>See Through the Hiring Fog ✨</h3>
-    <p style='text-align: center; font-size: 16px;'>Discover which skills actually get you hired – no fluff, just data.</p>
+st.markdown(f"""
+    <h1 style='text-align: center; color: {PINK};'>🚀 Resume vs Reality</h1>
+    <h3 style='text-align: center; color: {ORANGE};'>What You Say vs What They Want</h3>
+    <p style='text-align: center; font-size: 16px;'>✨ Let data reveal what recruiters are truly looking for. Discover the gap between what we list and what really lands the job.</p>
     <hr style='border: 1px solid #ddd;'>
 """, unsafe_allow_html=True)
 
@@ -25,8 +50,8 @@ def load_model():
 
 model, mlb = load_model()
 
-# --- Section Navigation Buttons ---
-section = st.selectbox("📍 Choose Section", [
+# --- Section Navigation ---
+section = st.selectbox("👇 What would you like to explore?", [
     "🔮 Hiring Prediction",
     "📊 Skill Insights Dashboard",
     "📎 Resume vs Job Match"
@@ -99,16 +124,21 @@ elif section == "📊 Skill Insights Dashboard":
     st.plotly_chart(px.bar(
         top_skills.melt(id_vars='skill', value_vars=['count_resumes', 'count_hired', 'count_jobs']),
         x='skill', y='value', color='variable', barmode='group',
+        color_discrete_sequence=[PINK, ORANGE, '#ffcccb'],
         title="Top 25 Skills: Resumes vs Hired vs Job Listings"
     ), use_container_width=True)
 
     st.subheader("⚖️ Resume Inflation vs Hiring Edge")
     st.markdown("_Where do your skills lie? This chart shows what's underrated, overrated, and just right._")
-    st.plotly_chart(px.scatter(
+    fig = px.scatter(
         df_all, x='Resume Inflation Index', y='Hiring Edge', text='skill',
         title="Skill Positioning Matrix",
         labels={"Resume Inflation Index": "Overstated on Resumes", "Hiring Edge": "Valuable for Hiring"},
-    ), use_container_width=True)
+        color_discrete_sequence=[ORANGE]
+    )
+    fig.update_traces(textposition='top center')
+    fig.update_layout(height=600)
+    st.plotly_chart(fig, use_container_width=True)
 
 # ----------------- SECTION 3: Resume vs Job Match -----------------
 elif section == "📎 Resume vs Job Match":
